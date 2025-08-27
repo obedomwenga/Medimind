@@ -4,6 +4,8 @@ from flask_cors import CORS
 from metta import MeTTaEngine
 from llm import call_groq, generate_metta_query
 import json
+import os
+from dotenv import load_dotenv
 
 app = Flask(__name__)
 app.secret_key = os.getenv("FLASK_SECRET_KEY")

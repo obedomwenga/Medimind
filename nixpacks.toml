@@ -1,0 +1,6 @@
+[build]
+install_cmd = "pip install -r requirements.txt"
+start_cmd = "python app.py"
+
+[build.packages]
+python = "python3"
