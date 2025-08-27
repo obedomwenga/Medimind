@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MediMind - Self-Evolving Medical Intelligence</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .chat-container {
+            height: calc(100vh - 180px);
+        }
+        .typing-indicator:after {
+            content: '...';
+            animation: typing 1.5s infinite;
+        }
+        @keyframes typing {
+            0% { content: '.'; }
+            33% { content: '..'; }
+            66% { content: '...'; }
+        }
+        .fact-item {
+            transition: all 0.3s ease;
+        }
+        .fact-item:hover {
+            transform: translateX(5px);
+        }
+        .slide-in {
+            animation: slideIn 0.3s forwards;
+        }
+        @keyframes slideIn {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 font-sans">
+    <div class="max-w-6xl mx-auto px-4 py-6">
+        <!-- Header -->
+        <header class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
+            <div>
+                <h1 class="text-3xl font-bold text-blue-800 flex items-center">
+                    <i class="fas fa-brain mr-3 text-blue-600"></i> MediMind
+                </h1>
+                <p class="text-gray-600 mt-1">Self-Evolving Medical Intelligence</p>
+            </div>
+            <div class="mt-4 md:mt-0 flex space-x-2">
+                <button id="learnModeBtn" class="px-4 py-2 bg-green-100 text-green-800 rounded-full text-sm font-medium hover:bg-green-200 transition">
+                    <i class="fas fa-graduation-cap mr-1"></i> Teach Mode
+                </button>
+                <button id="adminBtn" class="px-4 py-2 bg-purple-100 text-purple-800 rounded-full text-sm font-medium hover:bg-purple-200 transition">
+                    <i class="fas fa-cog mr-1"></i> Admin Panel
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+            <!-- Chat Header -->
+            <div class="bg-blue-700 text-white px-6 py-4 flex items-center">
+                <div class="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center mr-3">
+                    <i class="fas fa-user-md text-lg"></i>
+                </div>
+                <div>
+                    <h2 class="font-semibold">Medical Assistant</h2>
+                    <p class="text-xs opacity-80">Powered by MeTTa Knowledge Graph & LLM</p>
+                </div>
+                <div class="ml-auto flex items-center space-x-2">
+                    <span id="connectionStatus" class="flex items-center text-xs">
+                        <span class="w-2 h-2 rounded-full bg-green-400 mr-1"></span>
+                        <span>Connected</span>
+                    </span>
+                    <button id="refreshBtn" class="text-white opacity-70 hover:opacity-100">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Chat Container -->
+            <div class="chat-container overflow-y-auto p-4 space-y-4" id="chatContainer">
+                <!-- Welcome Message -->
+                <div class="flex items-start">
+                    <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center mr-3 flex-shrink-0">
+                        <i class="fas fa-robot text-blue-600"></i>
+                    </div>
+                    <div class="bg-blue-50 rounded-lg p-4 max-w-[85%] slide-in">
+                        <h3 class="font-medium text-blue-800 mb-1">Welcome to MediMind!</h3>
+                        <p class="text-gray-700">I'm your AI-powered medical assistant. I combine structured medical knowledge with advanced reasoning to provide accurate, explainable answers.</p>
+                        <div class="mt-3">
+                            <p class="text-xs text-gray-500 mb-1">Try asking:</p>
+                            <div class="flex flex-wrap gap-2">
+                                <button class="suggestion-btn text-xs px-3 py-1 bg-blue-100 text-blue-800 rounded-full hover:bg-blue-200 transition">What causes chest pain?</button>
+                                <button class="suggestion-btn text-xs px-3 py-1 bg-blue-100 text-blue-800 rounded-full hover:bg-blue-200 transition">How is malaria treated?</button>
+                                <button class="suggestion-btn text-xs px-3 py-1 bg-blue-100 text-blue-800 rounded-full hover:bg-blue-200 transition">Is air quality bad today?</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Input Area -->
+            <div class="border-t border-gray-200 p-4 bg-gray-50">
+                <form id="chatForm" class="flex items-center space-x-2">
+                    <div class="flex-grow relative">
+                        <input 
+                            type="text" 
+                            id="userInput" 
+                            placeholder="Ask a medical question..." 
+                            class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            autocomplete="off"
+                        >
+                        <button type="button" id="voiceInputBtn" class="absolute right-3 top-3 text-gray-400 hover:text-blue-600">
+                            <i class="fas fa-microphone"></i>
+                        </button>
+                    </div>
+                    <button type="submit" class="bg-blue-600 text-white px-5 py-3 rounded-lg hover:bg-blue-700 transition flex items-center">
+                        <i class="fas fa-paper-plane mr-2"></i> Send
+                    </button>
+                </form>
+                <div class="mt-2 text-xs text-gray-500 flex items-center">
+                    <i class="fas fa-info-circle mr-1"></i> MediMind provides information only, not medical advice.
+                </div>
+            </div>
+        </div>
+
+        <!-- Admin Panel Modal -->
+        <div id="adminModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+            <div class="bg-white rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+                <div class="bg-blue-700 text-white px-6 py-4 flex items-center justify-between">
+                    <h3 class="font-semibold text-lg">Admin Panel</h3>
+                    <button id="closeAdminModal" class="text-white opacity-70 hover:opacity-100">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="p-6">
+                    <div class="mb-6">
+                        <h4 class="font-medium text-gray-800 mb-3">Knowledge Graph Status</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div class="bg-gray-100 p-4 rounded-lg">
+                                <p class="text-sm text-gray-600">Total Facts</p>
+                                <p class="text-2xl font-bold text-blue-700">1,284</p>
+                            </div>
+                            <div class="bg-gray-100 p-4 rounded-lg">
+                                <p class="text-sm text-gray-600">Last Updated</p>
+                                <p class="text-2xl font-bold text-blue-700">2 min ago</p>
+                            </div>
+                            <div class="bg-gray-100 p-4 rounded-lg">
+                                <p class="text-sm text-gray-600">Accuracy Score</p>
+                                <p class="text-2xl font-bold text-blue-700">96.7%</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-6">
+                        <h4 class="font-medium text-gray-800 mb-3">Add New Knowledge</h4>
+                        <div class="flex flex-col space-y-3">
+                            <input type="text" placeholder="Relation (e.g. causes, treats)" class="px-4 py-2 border rounded-lg">
+                            <input type="text" placeholder="Subject (e.g. HeartAttack)" class="px-4 py-2 border rounded-lg">
+                            <input type="text" placeholder="Object (e.g. ChestPain)" class="px-4 py-2 border rounded-lg">
+                            <button class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition">Add to Knowledge Graph</button>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <h4 class="font-medium text-gray-800 mb-3">System Connections</h4>
+                        <div class="space-y-3">
+                            <div class="flex items-center justify-between p-3 bg-gray-100 rounded-lg">
+                                <div class="flex items-center">
+                                    <div class="w-3 h-3 rounded-full bg-green-500 mr-2"></div>
+                                    <span>MeTTa Engine</span>
+                                </div>
+                                <span class="text-sm text-gray-600">v1.2.5</span>
+                            </div>
+                            <div class="flex items-center justify-between p-3 bg-gray-100 rounded-lg">
+                                <div class="flex items-center">
+                                    <div class="w-3 h-3 rounded-full bg-green-500 mr-2"></div>
+                                    <span>LLM (Groq/Llama 3)</span>
+                                </div>
+                                <span class="text-sm text-gray-600">Response time: 1.2s</span>
+                            </div>
+                            <div class="flex items-center justify-between p-3 bg-gray-100 rounded-lg">
+                                <div class="flex items-center">
+                                    <div class="w-3 h-3 rounded-full bg-green-500 mr-2"></div>
+                                    <span>Weather API</span>
+                                </div>
+                                <span class="text-sm text-gray-600">Connected</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Learn Mode Indicator -->
+        <div id="learnModeIndicator" class="fixed bottom-4 left-4 bg-green-600 text-white px-4 py-2 rounded-full shadow-lg hidden z-40">
+            <i class="fas fa-graduation-cap mr-2"></i> Teach Mode Active
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const chatContainer = document.getElementById('chatContainer');
+            const chatForm = document.getElementById('chatForm');
+            const userInput = document.getElementById('userInput');
+            const adminModal = document.getElementById('adminModal');
+            const adminBtn = document.getElementById('adminBtn');
+            const closeAdminModal = document.getElementById('closeAdminModal');
+            const learnModeBtn = document.getElementById('learnModeBtn');
+            const learnModeIndicator = document.getElementById('learnModeIndicator');
+            const suggestionBtns = document.querySelectorAll('.suggestion-btn');
+            const voiceInputBtn = document.getElementById('voiceInputBtn');
+            const refreshBtn = document.getElementById('refreshBtn');
+            
+            let isLearnMode = false;
+            
+            // Sample responses for demo purposes
+            const sampleResponses = {
+                "What causes chest pain?": {
+                    answer: "Chest pain can be caused by several conditions with varying levels of severity:",
+                    details: [
+                        {condition: "Heart Attack", risk: "Critical", explanation: "Immediate medical attention required"},
+                        {condition: "Acid Reflux", risk: "Low", explanation: "Often related to diet or stress"},
+                        {condition: "Anxiety", risk: "Medium", explanation: "Can cause chest tightness or pain"}
+                    ],
+                    facts: [
+                        "(causes HeartAttack ChestPain)",
+                        "(condition HeartAttack Risk Critical)",
+                        "(causes AcidReflux ChestPain)",
+                        "(condition AcidReflux Risk Low)",
+                        "(causes Anxiety ChestPain)",
+                        "(condition Anxiety Risk Medium)"
+                    ]
+                },
+                "How is malaria treated?": {
+                    answer: "Malaria is typically treated with antimalarial medications. The specific treatment depends on factors like the type of malaria parasite and the severity of symptoms:",
+                    details: [
+                        {treatment: "Chloroquine", for: "P. vivax malaria in areas without resistance"},
+                        {treatment: "Artemisinin-based combination therapies (ACTs)", for: "P. falciparum malaria"},
+                        {treatment: "Primaquine", for: "Preventing relapses of P. vivax and P. ovale"}
+                    ],
+                    facts: [
+                        "(treatment Malaria Chloroquine)",
+                        "(treatment Malaria ACTs)",
+                        "(treatment Malaria Primaquine)",
+                        "(effective Chloroquine P.vivax)",
+                        "(effective ACTs P.falciparum)"
+                    ]
+                },
+                "Is air quality bad today?": {
+                    answer: "Current air quality in your area (simulated Mumbai data):",
+                    details: [
+                        {metric: "AQI", value: "156", level: "Unhealthy"},
+                        {metric: "PM2.5", value: "68.2 μg/m³", level: "High"},
+                        {metric: "Ozone", value: "0.045 ppm", level: "Moderate"}
+                    ],
+                    facts: [
+                        "(air-quality Mumbai AQI 156)",
+                        "(air-quality Mumbai PM2.5 68.2)",
+                        "(air-quality Mumbai Ozone 0.045)",
+                        "(risk-level AQI 156 Unhealthy)",
+                        "(risk-level PM2.5 68.2 High)"
+                    ],
+                    source: "OpenWeatherMap API"
+                }
+            };
+            
+            // Handle form submission
+            chatForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const question = userInput.value.trim();
+                if (question) {
+                    addUserMessage(question);
+                    userInput.value = '';
+                    
+                    // Show typing indicator
+                    const typingIndicator = document.createElement('div');
+                    typingIndicator.className = 'flex items-start';
+                    typingIndicator.innerHTML = `
+                        <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center mr-3 flex-shrink-0">
+                            <i class="fas fa-robot text-blue-600"></i>
+                        </div>
+                        <div class="bg-blue-50 rounded-lg p-3 max-w-[85%]">
+                            <div class="typing-indicator text-gray-700">Thinking</div>
+                        </div>
+                    `;
+                    chatContainer.appendChild(typingIndicator);
+                    chatContainer.scrollTop = chatContainer.scrollHeight;
+                    
+                    // Simulate API response delay
+                    setTimeout(() => {
+                        // Remove typing indicator
+                        chatContainer.removeChild(typingIndicator);
+                        
+                        // Get response (in a real app, this would be an API call)
+                        const response = getResponse(question);
+                        
+                        // Add bot response
+                        addBotResponse(response);
+                        
+                        chatContainer.scrollTop = chatContainer.scrollHeight;
+                    }, 1500);
+                }
+            });
+            
+            // Add user message to chat
+            function addUserMessage(message) {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = 'flex items-start justify-end slide-in';
+                messageDiv.innerHTML = `
+                    <div class="bg-blue-600 text-white rounded-lg p-4 max-w-[85%]">
+                        <p>${message}</p>
+                    </div>
+                    <div class="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center ml-3 flex-shrink-0">
+                        <i class="fas fa-user text-white"></i>
+                    </div>
+                `;
+                chatContainer.appendChild(messageDiv);
+            }
+            
+            // Add bot response to chat
+            function addBotResponse(response) {
+                const responseDiv = document.createElement('div');
+                responseDiv.className = 'flex items-start slide-in';
+                
+                // Create details HTML
+                let detailsHtml = '';
+                if (response.details) {
+                    detailsHtml = `<div class="mt-3 space-y-2">`;
+                    response.details.forEach(item => {
+                        if (item.condition) {
+                            detailsHtml += `
+                                <div class="flex items-start">
+                                    <div class="mt-1 mr-2 w-3 h-3 rounded-full ${getRiskColor(item.risk)} flex-shrink-0"></div>
+                                    <div>
+                                        <p class="font-medium">${item.condition} <span class="text-xs px-2 py-0.5 ${getRiskBgColor(item.risk)} text-white rounded-full ml-1">${item.risk}</span></p>
+                                        <p class="text-sm text-gray-600">${item.explanation}</p>
+                                    </div>
+                                </div>
+                            `;
+                        } else if (item.treatment) {
+                            detailsHtml += `
+                                <div class="flex items-start">
+                                    <div class="mt-1 mr-2 w-3 h-3 rounded-full bg-blue-400 flex-shrink-0"></div>
+                                    <div>
+                                        <p class="font-medium">${item.treatment}</p>
+                                        <p class="text-sm text-gray-600">${item.for}</p>
+                                    </div>
+                                </div>
+                            `;
+                        } else if (item.metric) {
+                            detailsHtml += `
+                                <div class="flex items-start">
+                                    <div class="mt-1 mr-2 w-3 h-3 rounded-full ${getAQIColor(item.level)} flex-shrink-0"></div>
+                                    <div>
+                                        <p class="font-medium">${item.metric}: ${item.value} <span class="text-xs px-2 py-0.5 ${getAQIBgColor(item.level)} text-white rounded-full ml-1">${item.level}</span></p>
+                                    </div>
+                                </div>
+                            `;
+                        }
+                    });
+                    detailsHtml += `</div>`;
+                }
+                
+                // Create facts HTML
+                let factsHtml = '';
+                if (response.facts) {
+                    factsHtml = `
+                        <div class="mt-4">
+                            <button class="toggle-facts-btn flex items-center text-xs text-blue-600 font-medium">
+                                <i class="fas fa-chevron-down mr-1 text-xs"></i> Show Facts Used
+                            </button>
+                            <div class="facts-container hidden mt-2 border-t pt-3">
+                                <p class="text-xs text-gray-500 mb-2">Knowledge Graph Facts:</p>
+                                <div class="space-y-1">
+                                    ${response.facts.map(fact => `
+                                        <div class="fact-item flex items-start bg-gray-50 p-2 rounded text-sm">
+                                            <div class="mr-2 text-gray-400">
+                                                <i class="fas fa-link"></i>
+                                            </div>
+                                            <div>
+                                                <code class="text-gray-800">${fact}</code>
+                                                ${isLearnMode ? `
+                                                <div class="mt-1 flex space-x-2">
+                                                    <button class="text-xs text-red-500 hover:text-red-700">
+                                                        <i class="fas fa-trash-alt mr-1"></i> Remove
+                                                    </button>
+                                                    <button class="text-xs text-green-600 hover:text-green-800">
+                                                        <i class="fas fa-edit mr-1"></i> Edit
+                                                    </button>
+                                                </div>
+                                                ` : ''}
+                                            </div>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                                ${response.source ? `
+                                <div class="mt-2 text-xs text-gray-500">
+                                    <i class="fas fa-database mr-1"></i> Source: ${response.source}
+                                </div>
+                                ` : ''}
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                // Create teach mode options if active
+                let teachOptions = '';
+                if (isLearnMode) {
+                    teachOptions = `
+                        <div class="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                            <p class="text-sm font-medium text-yellow-800 mb-2">Teach Mode Active</p>
+                            <div class="flex flex-wrap gap-2">
+                                <button class="text-xs px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full hover:bg-yellow-200 transition">
+                                    <i class="fas fa-plus-circle mr-1"></i> Add Related Fact
+                                </button>
+                                <button class="text-xs px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full hover:bg-yellow-200 transition">
+                                    <i class="fas fa-check-circle mr-1"></i> Confirm Accuracy
+                                </button>
+                                <button class="text-xs px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full hover:bg-yellow-200 transition">
+                                    <i class="fas fa-times-circle mr-1"></i> Report Inaccuracy
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                responseDiv.innerHTML = `
+                    <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center mr-3 flex-shrink-0">
+                        <i class="fas fa-robot text-blue-600"></i>
+                    </div>
+                    <div class="bg-blue-50 rounded-lg p-4 max-w-[85%]">
+                        <p class="text-gray-700">${response.answer}</p>
+                        ${detailsHtml}
+                        ${factsHtml}
+                        ${teachOptions}
+                    </div>
+                `;
+                
+                chatContainer.appendChild(responseDiv);
+                
+                // Add event listeners to toggle buttons
+                const toggleBtns = responseDiv.querySelectorAll('.toggle-facts-btn');
+                toggleBtns.forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const container = this.nextElementSibling;
+                        container.classList.toggle('hidden');
+                        const icon = this.querySelector('i');
+                        if (container.classList.contains('hidden')) {
+                            icon.classList.replace('fa-chevron-up', 'fa-chevron-down');
+                        } else {
+                            icon.classList.replace('fa-chevron-down', 'fa-chevron-up');
+                        }
+                    });
+                });
+            }
+            
+            // Get response based on question (simulated)
+            function getResponse(question) {
+                const lowerQuestion = question.toLowerCase();
+                
+                // Check for exact matches first
+                for (const key in sampleResponses) {
+                    if (lowerQuestion === key.toLowerCase()) {
+                        return sampleResponses[key];
+                    }
+                }
+                
+                // Check for partial matches
+                if (lowerQuestion.includes('chest pain') || lowerQuestion.includes('chest hurt')) {
+                    return sampleResponses["What causes chest pain?"];
+                } else if (lowerQuestion.includes('malaria')) {
+                    return sampleResponses["How is malaria treated?"];
+                } else if (lowerQuestion.includes('air quality') || lowerQuestion.includes('pollution')) {
+                    return sampleResponses["Is air quality bad today?"];
+                }
+                
+                // Default response for unknown questions
+                return {
+                    answer: "I'm sorry, I don't have enough information to answer that question precisely. Could you provide more details or try asking a different way?",
+                    details: [],
+                    facts: []
+                };
+            }
+            
+            // Helper functions for risk colors
+            function getRiskColor(risk) {
+                switch(risk.toLowerCase()) {
+                    case 'critical': return 'bg-red-500';
+                    case 'high': return 'bg-orange-500';
+                    case 'medium': return 'bg-yellow-500';
+                    case 'low': return 'bg-green-500';
+                    default: return 'bg-gray-500';
+                }
+            }
+            
+            function getRiskBgColor(risk) {
+                switch(risk.toLowerCase()) {
+                    case 'critical': return 'bg-red-600';
+                    case 'high': return 'bg-orange-600';
+                    case 'medium': return 'bg-yellow-600';
+                    case 'low': return 'bg-green-600';
+                    default: return 'bg-gray-600';
+                }
+            }
+            
+            function getAQIColor(level) {
+                switch(level.toLowerCase()) {
+                    case 'hazardous': return 'bg-purple-600';
+                    case 'very unhealthy': return 'bg-red-600';
+                    case 'unhealthy': return 'bg-orange-600';
+                    case 'unhealthy for sensitive groups': return 'bg-yellow-600';
+                    case 'moderate': return 'bg-blue-400';
+                    case 'good': return 'bg-green-500';
+                    default: return 'bg-gray-500';
+                }
+            }
+            
+            function getAQIBgColor(level) {
+                switch(level.toLowerCase()) {
+                    case 'hazardous': return 'bg-purple-700';
+                    case 'very unhealthy': return 'bg-red-700';
+                    case 'unhealthy': return 'bg-orange-600';
+                    case 'unhealthy for sensitive groups': return 'bg-yellow-600';
+                    case 'moderate': return 'bg-blue-500';
+                    case 'good': return 'bg-green-600';
+                    default: return 'bg-gray-600';
+                }
+            }
+            
+            // Admin panel toggle
+            adminBtn.addEventListener('click', function() {
+                adminModal.classList.remove('hidden');
+            });
+            
+            closeAdminModal.addEventListener('click', function() {
+                adminModal.classList.add('hidden');
+            });
+            
+            // Learn mode toggle
+            learnModeBtn.addEventListener('click', function() {
+                isLearnMode = !isLearnMode;
+                if (isLearnMode) {
+                    learnModeBtn.classList.remove('bg-green-100', 'text-green-800');
+                    learnModeBtn.classList.add('bg-green-600', 'text-white');
+                    learnModeIndicator.classList.remove('hidden');
+                } else {
+                    learnModeBtn.classList.add('bg-green-100', 'text-green-800');
+                    learnModeBtn.classList.remove('bg-green-600', 'text-white');
+                    learnModeIndicator.classList.add('hidden');
+                }
+            });
+            
+            // Suggestion buttons
+            suggestionBtns.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    userInput.value = this.textContent;
+                    userInput.focus();
+                });
+            });
+            
+            // Voice input (simulated)
+            voiceInputBtn.addEventListener('click', function() {
+                voiceInputBtn.innerHTML = '<i class="fas fa-microphone-slash"></i>';
+                voiceInputBtn.classList.remove('text-gray-400');
+                voiceInputBtn.classList.add('text-red-500');
+                
+                // Simulate voice recognition
+                setTimeout(() => {
+                    const questions = [
+                        "What causes chest pain?",
+                        "How is malaria treated?",
+                        "Is air quality bad today?",
+                        "What are the symptoms of diabetes?",
+                        "How to treat a fever?"
+                    ];
+                    const randomQuestion = questions[Math.floor(Math.random() * questions.length)];
+                    
+                    userInput.value = randomQuestion;
+                    voiceInputBtn.innerHTML = '<i class="fas fa-microphone"></i>';
+                    voiceInputBtn.classList.add('text-gray-400');
+                    voiceInputBtn.classList.remove('text-red-500');
+                    userInput.focus();
+                }, 2000);
+            });
+            
+            // Refresh button
+            refreshBtn.addEventListener('click', function() {
+                // Simulate refreshing connections
+                const status = document.getElementById('connectionStatus');
+                status.innerHTML = '<span class="w-2 h-2 rounded-full bg-yellow-400 mr-1 animate-pulse"></span><span>Refreshing...</span>';
+                
+                setTimeout(() => {
+                    status.innerHTML = '<span class="w-2 h-2 rounded-full bg-green-400 mr-1"></span><span>Connected</span>';
+                    
+                    // Add system message
+                    const systemMsg = document.createElement('div');
+                    systemMsg.className = 'flex justify-center slide-in';
+                    systemMsg.innerHTML = `
+                        <div class="text-xs text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
+                            <i class="fas fa-info-circle mr-1"></i> System connections refreshed
+                        </div>
+                    `;
+                    chatContainer.appendChild(systemMsg);
+                    chatContainer.scrollTop = chatContainer.scrollHeight;
+                }, 1500);
+            });
+        });
+    </script>
+</body>
+</html>
